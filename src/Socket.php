@@ -243,4 +243,9 @@ abstract class Socket
     {
         return stream_socket_get_name($this->socket, true);
     }
+
+    public function getLastLine()
+    {
+        return fgets($this->socket);
+    }
 }

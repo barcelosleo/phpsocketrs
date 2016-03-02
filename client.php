@@ -18,9 +18,9 @@ while ($chatOn) {
     if ( 0 < stream_select($streamsToRead, $streamsToWrite, $streamsToExcept, null)) {
         foreach ($streamsToRead as $i => $socket) {
             if ($socket == $userIn) {
-                fwrite($chat->getSocket(), "[$argv[1]]: " . fgets($userIn));
+                $chat->write("[$argv[1]]: " . fgets($userIn));
             } else {
-                $text = fgets($chat->getSocket());
+                $text = $chat->getLastLine();
                 if ($text == "") {
                     echo "Chat fechado!\n";
                     $chatOn  = false;
