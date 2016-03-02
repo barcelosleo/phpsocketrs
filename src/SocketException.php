@@ -6,10 +6,8 @@
  */
 class SocketException extends \Exception
 {
-    public function __construct($socketLastError)
+    public function __construct($message, $code, \Exception $previous = null)
     {
-        $code = $socketLastError;
-        $message = socket_strerror($code);
-        parent::__construct($message, $code, null);
+        parent::__construct($message, $code, $previous);
     }
 }

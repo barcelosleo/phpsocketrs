@@ -4,23 +4,67 @@
  * Class Socket
  * @package Socket
  */
-class Socket
+abstract class Socket
 {
     /**
      * @var $socket Variável onde será criado o socket
      */
-    private $socket;
+    protected $socket;
+
+    /**
+     * @var $lastResponse Última resposta do socket
+     */
+    protected $lastResponse;
+
     /**
      * @var bool
      */
-    private $verbose = true;
+    protected $verbose = true;
+
+    /**
+     * @var string Protocolo da requisição
+     */
+    protected $protocol = 'tcp';
+
+    /**
+     * @var string Host para onde serão enviadas as requisições
+     */
+    protected $host;
+
+    /**
+     * @var string Porta do host onde serão enviadas as requisições
+     */
+    protected $port;
+
+    /**
+     * @var int Número de segundos para timeout
+     */
+    protected $timeOut;
+
+    /**
+     * @var mixed Flags para socket
+     */
+    protected $flags;
+
+    /**
+     * @var mixed Context criado a partir de stream_context_create()
+     */
+    protected $context;
 
     /**
      * Socket constructor.
+     * @param null $host
+     * @param null $port
+     * @param null $protocol
      */
-    public function __construct()
+    public function __construct($host = null, $port = null, $protocol = null)
     {
-        $this->create();
+        $this->host = $host;
+        $this->port = $port;
+        $this->protocol = $protocol ? $protocol : $this->protocol;
+        if ($host && $port) {
+            $this->create();
+        }
     }
 
     /**
@@ -32,92 +76,171 @@ class Socket
     }
 
     /**
+     * @return Variável
+     */
+    public function getSocket()
+    {
+        return $this->socket;
+    }
+
+    /**
+     * @param Variável $socket
+     */
+    public function setSocket($socket)
+    {
+        $this->socket = $socket;
+    }
+
+    /**
+     * @return string
+     */
+    public function getProtocol()
+    {
+        return $this->protocol;
+    }
+
+    /**
+     * @param string $protocol
+     */
+    public function setProtocol($protocol)
+    {
+        $this->protocol = $protocol;
+    }
+
+    /**
+     * @return string
+     */
+    public function getHost()
+    {
+        return $this->host;
+    }
+
+    /**
+     * @param string $host
+     */
+    public function setHost($host)
+    {
+        $this->host = $host;
+    }
+
+    /**
+     * @return string
+     */
+    public function getPort()
+    {
+        return $this->port;
+    }
+
+    /**
+     * @param string $port
+     */
+    public function setPort($port)
+    {
+        $this->port = $port;
+    }
+
+    /**
+     * @return int
+     */
+    public function getTimeOut()
+    {
+        return $this->timeOut;
+    }
+
+    /**
+     * @param int $timeOut
+     */
+    public function setTimeOut($timeOut)
+    {
+        $this->timeOut = $timeOut;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getFlags()
+    {
+        return $this->flags;
+    }
+
+    /**
+     * @param mixed $flags
+     */
+    public function setFlags($flags)
+    {
+        $this->flags = $flags;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getContext()
+    {
+        return $this->context;
+    }
+
+    /**
+     * @param mixed $context
+     */
+    public function setContext($context)
+    {
+        $this->context = $context;
+    }
+
+    /**
      * Método que cria o socket
      * @throws SocketException
      */
-    private function create()
-    {
-        if (!($this->socket = stream_socket_client())) {
-            throw new SocketException(socket_last_error($this-$this->socket));
-        }
-        if ($this->verbose) {
-            echo "Socket created..\n";
-        }
-    }
+    abstract protected function create();
 
     /**
      * Método que fecha o socket
      */
-    private function close()
+    protected function close()
     {
-        socket_close($this->socket);
+        fclose($this->socket);
         if ($this->verbose) {
             echo "Socket destroyed..\n";
         }
     }
 
     /**
-     * Método que realiza uma conexão
-     * @param $host
-     * @param $port
-     * @throws SocketException
+     * Método que retorna o conteúdo da resposta do socket
+     * @return string
      */
-    public function connect($host, $port)
+    public function getResponse()
     {
-        if (!socket_connect($this->socket, $host, $port)) {
-            throw new SocketException(socket_last_error($this->socket));
+        $response = null;
+        if ($this->lastResponse) {
+            $response = $this->lastResponse;
+            $this->lastResponse = null;
+            return $response;
         }
-        if ($this->verbose) {
-            echo "Connection stablished to {$host}:{$port}..\n";
-        }
+        return $this->lastResponse = stream_get_contents($this->socket);
     }
 
-    public function send(RequestMessage $request)
+    public function writeSocketMessage(SocketMessage $request)
     {
-        socket_send($this->socket, $request->getRequestMessage(), $request->getRequestSize(), $request->getRequestFlags());
+        fwrite($this->socket, $request->getSocketMessage(), $request->getSocketMessageSize());
     }
 
-    public function response()
+    public function write($content)
     {
-        if (socket_recv($this->socket, $response, 2045, MSG_WAITALL) === false) {
-            throw new SocketException(socket_last_error($this->socket));
-        }
-        return $response;
-    }
-
-    public function bind($host, $port)
-    {
-        if (!socket_bind($this->socket, $host, $port)) {
-            throw new SocketException(socket_last_error($this->socket));
-        }
-    }
-
-    public function listen($host, $port)
-    {
-        if (!socket_listen($this->socket)) {
-            throw new SocketException(socket_last_error($this->socket));
-        }
+        fwrite($this->socket, $content);
     }
 
     public function accept()
     {
-        if (!socket_accept($this->socket)) {
-            throw new SocketException(socket_last_error($this->socket));
-        }
+        return stream_socket_accept($this->socket);
     }
 
-    public function read($bufferSize = 1024)
+    public function copyStream(Socket $sourceStream)
     {
-        if (!($response = socket_read($this->socket, $bufferSize))) {
-            throw new SocketException(socket_last_error($this->socket));
-        }
-        return $response;
+        stream_copy_to_stream($sourceStream->getSocket(), $this->socket);
     }
 
-    public function write(RequestMessage $request)
+    public function getName()
     {
-        if (!socket_write($this->socket, $request->getRequestMessage(), $request->getRequestSize(), $request->getRequestFlags())) {
-            throw new SocketException(socket_last_error($this->socket));
-        }
+        return stream_socket_get_name($this->socket, true);
     }
 }
