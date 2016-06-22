@@ -4,10 +4,16 @@ include "vendor/autoload.php";
 
 use LeonardoBarcelos\PhpSocketRS;
 
-$chat = new PhpSocketRS\ClientSocket('192.168.0.33', 32150);
+if (count($argv) < 3)  {
+    echo "Error:\n";
+    echo "\tUsage: php client.php {serverIp} {nickName}\n";
+    exit();
+}
+
+$chat = new PhpSocketRS\ClientSocket($argv[1], 32150);
 
 $userIn = fopen('php://stdin', 'r');
-echo "[$argv[1]]: ";
+echo "[$argv[2]]: ";
 
 $chatOn = true;
 while ($chatOn) {
@@ -18,7 +24,7 @@ while ($chatOn) {
     if ( 0 < stream_select($streamsToRead, $streamsToWrite, $streamsToExcept, null)) {
         foreach ($streamsToRead as $i => $socket) {
             if ($socket == $userIn) {
-                $chat->write("[$argv[1]]: " . fgets($userIn));
+                $chat->write("[$argv[2]]: " . fgets($userIn));
             } else {
                 $text = $chat->getLastLine();
                 if ($text == "") {
@@ -29,7 +35,7 @@ while ($chatOn) {
                 }
                 echo "\n" . $text;
             }
-            echo "[$argv[1]]: ";
+            echo "[$argv[2]]: ";
         }
     }
 }

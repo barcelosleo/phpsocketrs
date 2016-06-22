@@ -4,7 +4,13 @@ include "vendor/autoload.php";
 
 use LeonardoBarcelos\PhpSocketRS;
 
-$server = new PhpSocketRS\ServerSocket('192.168.0.33', 32150);
+if (count($argv) < 3)  {
+    echo "Error:\n";
+    echo "\tUsage: php server.php {serverIp} {nickName}\n";
+    exit();
+}
+
+$server = new PhpSocketRS\ServerSocket($argv[1], 32150);
 
 echo "Aguardando Fulano...\n";
 $chat = $server->accept();
@@ -12,7 +18,7 @@ $chat = $server->accept();
 echo "Conexão estabelecida com ". $chat->getName() ."\n";
 
 $userIn = fopen('php://stdin', 'r');
-echo "[$argv[1]]: ";
+echo "[$argv[2]]: ";
 
 $chatOn = true;
 while ($chatOn) {
@@ -23,7 +29,7 @@ while ($chatOn) {
     if ( 0 < stream_select($streamsToRead, $streamsToWrite, $streamsToExcept, null)) {
         foreach ($streamsToRead as $i => $socket) {
             if ($socket == $userIn) {
-                $chat->write("[$argv[1]]: " . fgets($userIn));
+                $chat->write("[$argv[2]]: " . fgets($userIn));
 //                fwrite($chat->getSocket(), );
             } else {
                 $text = $chat->getLastLine();
@@ -35,7 +41,7 @@ while ($chatOn) {
                 }
                 echo "\n" . $text;
             }
-            echo "[$argv[1]]: ";
+            echo "[$argv[2]]: ";
         }
     }
 }
